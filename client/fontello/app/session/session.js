@@ -6,9 +6,7 @@
 
 var _ = require('lodash');
 
-
 var STORAGE_KEY        = 'fontello:sessions:v4';
-
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -82,65 +80,191 @@ store.get = function (key) {
 ////////////////////////////////////////////////////////////////////////////////
 
 
-N.wire.on('session_save', _.debounce(function () {
+function map_data() {
+    var session = {};
 
+    session.name            = '$current$';
+    session.fontname        = N.app.fontName();
+    session.css_prefix_text = N.app.cssPrefixText();
+    session.font_destination_type = N.app.fontDestinationType();
+    session.font_destination_path = N.app.fontDestinationPath();
+    session.css_use_suffix  = N.app.cssUseSuffix();
+    session.hinting         = N.app.hinting();
+    session.encoding        = N.app.encoding();
+    session.font_fullname   = N.app.fontFullName();
+    session.font_units      = N.app.fontUnitsPerEm();
+    session.font_ascent     = N.app.fontAscent();
+    session.font_copyright  = N.app.fontCopyright();
+    session.fonts           = {};
+    session.selected_glyphs = [];
+
+    _.forEach(N.app.fontsList.selectedGlyphs(), glyph => {
+        session.selected_glyphs.push(glyph.uid);
+    });
+
+    _.each(N.app.fontsList.fonts, function (font) {
+        var font_data = { collapsed: font.collapsed(), glyphs: [] };
+
+        // for custom icons we always have to store ALL
+        // glyphs + their state
+        if (font.fontname === 'custom_icons') {
+            _.each(font.glyphs(), function (glyph) {
+                font_data.glyphs.push({
+                    css:      glyph.name(),
+                    code:     glyph.code(),
+                    uid:      glyph.uid,
+                    search:   glyph.search || [],
+                    svg: {
+                        path  : (glyph.svg || {}).path || '',
+                        width : (glyph.svg || {}).width || 0
+                    }
+                });
+            });
+        } else {
+            // for regular fonts store state of modified glyphs only
+            _.each(font.glyphs(), function (glyph) {
+                if (glyph.isModified()) {
+                    font_data.glyphs.push({
+                        uid:      glyph.uid,
+                        code:     glyph.code(),
+                        css:      glyph.name()
+                    });
+                }
+            });
+        }
+
+        session.fonts[font.fontname] = font_data;
+    });
+
+    return session;
+}
+
+function load_data(session, data) {
+    if (_.isEmpty(data) || !_.isObject(data)) {
+        data = { sessions: [] };
+    }
+
+    if (+data.font_size > 0) {
+        N.app.fontSize(data.font_size);
+    }
+
+    // Try to find current session
+    session = _.find(data.sessions, function (session) {
+        return session.name === '$current$';
+    });
+
+    if (!session) { return; }
+
+    //
+    // Now load session data into models
+    //
+
+    N.app.fontName(session.fontname);
+
+    if (_.has(session, 'css_prefix_text')) { N.app.cssPrefixText(String(session.css_prefix_text)); }
+    if (_.has(session, 'css_use_suffix')) { N.app.cssUseSuffix(Boolean(session.css_use_suffix)); }
+    if (_.has(session, 'encoding')) { N.app.encoding(String(session.encoding)); }
+    if (_.has(session, 'font_units')) { N.app.fontUnitsPerEm(Number(session.font_units)); }
+    if (_.has(session, 'font_ascent')) { N.app.fontAscent(Number(session.font_ascent)); }
+
+    if (_.has(session, 'font_fullname')) {
+        // patch broken data
+        if (session.font_fullname === 'undefined') { delete session.font_fullname; }
+        N.app.fontFullName(String(session.font_fullname || ''));
+    }
+    if (_.has(session, 'font_copyright')) {
+        // patch broken data
+        if (session.font_copyright === 'undefined') { delete session.font_copyright; }
+        N.app.fontCopyright(String(session.font_copyright || ''));
+    }
+
+    if (_.has(session, 'font_destination_type')) { N.app.encoding(String(session.font_destination_type)); }
+    if (_.has(session, 'font_destination_path')) { N.app.encoding(String(session.font_destination_path)); }
+
+    N.app.hinting(session.hinting !== false);
+
+    // reset selection prior to set glyph data
+    // not nesessary now, since we load session only on start
+    //_.each(N.app.fontsList.selectedGlyphs(), function (glyph) { glyph.toggleSelect(false); });
+
+    // load glyphs states
+    _.each(session.fonts, function (sessionFont, name) {
+        var targetFont = N.app.fontsList.getFont(name);
+
+        // Do nothing for unknown fonts
+        if (!targetFont) { return; }
+
+        targetFont.collapsed(!!sessionFont.collapsed);
+
+        //
+        // for custom icons - import glyphs & set their state
+        //
+        if (targetFont.fontname === 'custom_icons') {
+            var charRefCode = 0xE800;
+
+            _.each(sessionFont.glyphs, function (glyph) {
+                // skip broken glyphs
+                if (!glyph.code || !glyph.css || !glyph.svg ||
+                    (!glyph.svg || {}).path || (!glyph.svg || {}).width) {
+                    return;
+                }
+
+                targetFont.addGlyph({
+                    css:      glyph.css,
+                    code:     glyph.code,
+                    uid:      glyph.uid,
+                    selected: glyph.selected, // legacy stuff old format
+                    search:   glyph.search || [],
+                    charRef:  charRefCode++,
+                    svg:      glyph.svg
+                });
+            });
+            return;
+        }
+
+        //
+        // for existing fonts - set states only
+        //
+
+        // create map to lookup glyphs by id
+        var lookup = {};
+        _.each(targetFont.glyphs(), function (glyph) {
+            lookup[glyph.uid] = glyph;
+        });
+
+        // fill glyphs state
+        _.each(sessionFont.glyphs, function (glyph) {
+            var targetGlyph = lookup[glyph.uid];
+
+            // Check if glyph with this `uid` really exists
+            if (!targetGlyph) { return; }
+
+            targetGlyph.toggleSelect(!!glyph.selected);
+            targetGlyph.code(glyph.code || targetGlyph.originalCode);
+            targetGlyph.name(glyph.css || targetGlyph.originalName);
+        });
+    });
+
+    // load selection state separate to keep order
+    _.forEach(session.selected_glyphs, uid => {
+        let glyph = N.app.fontsList.glyphMap[uid];
+
+        if (glyph) {
+            let code = glyph.code();
+
+            glyph.toggleSelect(true);
+            // prevent code modification via codes tracker
+            glyph.code(code);
+        }
+    });
+}
+
+N.wire.on('session_save', _.debounce(function () {
   if (!store.exists()) { return; }
 
   // Now always write to idx 0, until multisession support added
   // So, don't try to read previous data - overwrite always.
-
-  var session = {};
-
-  session.name            = '$current$';
-  session.fontname        = N.app.fontName();
-  session.css_prefix_text = N.app.cssPrefixText();
-  session.css_use_suffix  = N.app.cssUseSuffix();
-  session.hinting         = N.app.hinting();
-  session.encoding        = N.app.encoding();
-  session.font_fullname   = N.app.fontFullName();
-  session.font_units      = N.app.fontUnitsPerEm();
-  session.font_ascent     = N.app.fontAscent();
-  session.font_copyright  = N.app.fontCopyright();
-  session.fonts           = {};
-  session.selected_glyphs = [];
-
-  _.forEach(N.app.fontsList.selectedGlyphs(), glyph => {
-    session.selected_glyphs.push(glyph.uid);
-  });
-
-  _.each(N.app.fontsList.fonts, function (font) {
-    var font_data = { collapsed: font.collapsed(), glyphs: [] };
-
-    // for custom icons we always have to store ALL
-    // glyphs + their state
-    if (font.fontname === 'custom_icons') {
-      _.each(font.glyphs(), function (glyph) {
-        font_data.glyphs.push({
-          css:      glyph.name(),
-          code:     glyph.code(),
-          uid:      glyph.uid,
-          search:   glyph.search || [],
-          svg: {
-            path  : (glyph.svg || {}).path || '',
-            width : (glyph.svg || {}).width || 0
-          }
-        });
-      });
-    } else {
-      // for regular fonts store state of modified glyphs only
-      _.each(font.glyphs(), function (glyph) {
-        if (glyph.isModified()) {
-          font_data.glyphs.push({
-            uid:      glyph.uid,
-            code:     glyph.code(),
-            css:      glyph.name()
-          });
-        }
-      });
-    }
-
-    session.fonts[font.fontname] = font_data;
-  });
+  var session = map_data();
 
   //
   // Save
@@ -154,6 +278,47 @@ N.wire.on('session_save', _.debounce(function () {
 }, 500));
 
 
+N.wire.on('file_save', _.debounce(function () {
+    // Now always write to idx 0, until multisession support added
+    // So, don't try to read previous data - overwrite always.
+    var session = map_data();
+
+    //
+    // Save
+    //
+    $.ajax({
+        method: "POST",
+        url: N.router.linkTo('fontello.api.save'),
+        processData: false,
+        data: {},
+        beforeSend: function(request) {
+            let data = JSON.stringify({
+                path: `./${STORAGE_KEY}.json`,
+                args: {font_size: N.app.fontSize(), sessions: [session]}
+            });
+
+            request.setRequestHeader("X-Content", data);
+            request.setRequestHeader('Content-Type', 'application/json');
+            request.setRequestHeader('Content-Length', data.length);
+        }
+    });
+
+}, 500));
+
+N.wire.on('file_load', function file_load() {
+    var session, data;
+
+    $.ajax({
+        method: "GET",
+        url: `/load?path=./${STORAGE_KEY}.json`,
+        success: function(data) {
+            data = JSON.parse(data);
+
+            load_data(session, data)
+        }
+    });
+});
+
 
 N.wire.on('session_load', function session_load() {
   var session, data;
@@ -163,118 +328,5 @@ N.wire.on('session_load', function session_load() {
   // Extract everything from store, if possible
   data = store.get(STORAGE_KEY);
 
-  if (_.isEmpty(data) || !_.isObject(data)) {
-    data = { sessions: [] };
-  }
-
-  if (+data.font_size > 0) {
-    N.app.fontSize(data.font_size);
-  }
-
-  // Try to find current session
-  session = _.find(data.sessions, function (session) {
-    return session.name === '$current$';
-  });
-
-  if (!session) { return; }
-
-  //
-  // Now load session data into models
-  //
-
-  N.app.fontName(session.fontname);
-
-  if (_.has(session, 'css_prefix_text')) { N.app.cssPrefixText(String(session.css_prefix_text)); }
-  if (_.has(session, 'css_use_suffix')) { N.app.cssUseSuffix(Boolean(session.css_use_suffix)); }
-  if (_.has(session, 'encoding')) { N.app.encoding(String(session.encoding)); }
-  if (_.has(session, 'font_units')) { N.app.fontUnitsPerEm(Number(session.font_units)); }
-  if (_.has(session, 'font_ascent')) { N.app.fontAscent(Number(session.font_ascent)); }
-
-  if (_.has(session, 'font_fullname')) {
-    // patch broken data
-    if (session.font_fullname === 'undefined') { delete session.font_fullname; }
-    N.app.fontFullName(String(session.font_fullname || ''));
-  }
-  if (_.has(session, 'font_copyright')) {
-    // patch broken data
-    if (session.font_copyright === 'undefined') { delete session.font_copyright; }
-    N.app.fontCopyright(String(session.font_copyright || ''));
-  }
-
-  N.app.hinting(session.hinting !== false);
-
-  // reset selection prior to set glyph data
-  // not nesessary now, since we load session only on start
-  //_.each(N.app.fontsList.selectedGlyphs(), function (glyph) { glyph.toggleSelect(false); });
-
-  // load glyphs states
-  _.each(session.fonts, function (sessionFont, name) {
-    var targetFont = N.app.fontsList.getFont(name);
-
-    // Do nothing for unknown fonts
-    if (!targetFont) { return; }
-
-    targetFont.collapsed(!!sessionFont.collapsed);
-
-    //
-    // for custom icons - import glyphs & set their state
-    //
-    if (targetFont.fontname === 'custom_icons') {
-      var charRefCode = 0xE800;
-
-      _.each(sessionFont.glyphs, function (glyph) {
-        // skip broken glyphs
-        if (!glyph.code || !glyph.css || !glyph.svg ||
-            (!glyph.svg || {}).path || (!glyph.svg || {}).width) {
-          return;
-        }
-
-        targetFont.addGlyph({
-          css:      glyph.css,
-          code:     glyph.code,
-          uid:      glyph.uid,
-          selected: glyph.selected, // legacy stuff old format
-          search:   glyph.search || [],
-          charRef:  charRefCode++,
-          svg:      glyph.svg
-        });
-      });
-      return;
-    }
-
-    //
-    // for existing fonts - set states only
-    //
-
-    // create map to lookup glyphs by id
-    var lookup = {};
-    _.each(targetFont.glyphs(), function (glyph) {
-      lookup[glyph.uid] = glyph;
-    });
-
-    // fill glyphs state
-    _.each(sessionFont.glyphs, function (glyph) {
-      var targetGlyph = lookup[glyph.uid];
-
-      // Check if glyph with this `uid` really exists
-      if (!targetGlyph) { return; }
-
-      targetGlyph.toggleSelect(!!glyph.selected);
-      targetGlyph.code(glyph.code || targetGlyph.originalCode);
-      targetGlyph.name(glyph.css || targetGlyph.originalName);
-    });
-  });
-
-  // load selection state separate to keep order
-  _.forEach(session.selected_glyphs, uid => {
-    let glyph = N.app.fontsList.glyphMap[uid];
-
-    if (glyph) {
-      let code = glyph.code();
-
-      glyph.toggleSelect(true);
-      // prevent code modification via codes tracker
-      glyph.code(code);
-    }
-  });
+  load_data(session, data);
 });
