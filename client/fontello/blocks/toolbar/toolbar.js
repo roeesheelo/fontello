@@ -48,7 +48,12 @@ function ToolbarModel() {
     if (value < GLYPH_SIZE_MIN) { return; }
 
     N.app.fontSize(value);
-    N.wire.emit('session_save');
+
+    if (N.app.fontDestinationType() == 'file') {
+      N.wire.emit('file_save');
+    } else {
+      N.wire.emit('session_save');
+    }
   }, 50));
 
 
