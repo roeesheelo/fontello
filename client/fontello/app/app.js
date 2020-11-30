@@ -49,6 +49,9 @@ N.wire.once('navigate.done', { priority: -90 }, function () {
   N.app.fontName      = ko.observable();
   N.app.cssPrefixText = ko.observable();
   N.app.cssUseSuffix  = ko.observable();
+  N.app.fontDestinationType  = ko.observable();
+  N.app.fontDestinationPath  = ko.observable();
+
   // This font params needed only if one wish to create custom font,
   // or play with baseline. Can be tuned via advanced settings
   N.app.fontUnitsPerEm  = ko.observable();
@@ -70,6 +73,8 @@ N.wire.once('navigate.done', { priority: -90 }, function () {
 
     if (!_.isEmpty(N.app.fontCopyright())) { config.copyright = $.trim(N.app.fontCopyright()); }
     if (!_.isEmpty(N.app.fontFullName())) { config.fullname = $.trim(N.app.fontFullName()); }
+    if (!_.isEmpty(N.app.fontDestinationType())) { config.font_destination_type = $.trim(N.app.fontDestinationType()); }
+    if (!_.isEmpty(N.app.fontDestinationPath())) { config.font_destination_path = $.trim(N.app.fontDestinationPath()); }
 
     config.glyphs = [];
 
@@ -136,7 +141,11 @@ N.wire.once('navigate.done', { priority: -10 }, function page_setup() {
     'fontCopyright'
   ].forEach(function (key) {
     N.app[key].subscribe(function () {
-      N.wire.emit('session_save');
+      if (N.app.fontDestinationType() == 'file') {
+        N.wire.emit('file_save');
+      } else {
+        N.wire.emit('session_save');
+      }
     });
   });
 
@@ -147,7 +156,11 @@ N.wire.once('navigate.done', { priority: -10 }, function page_setup() {
     N.app.apiUrl(N.runtime.page_data.url || '');
     N.wire.emit('import.obj', N.runtime.page_data.config);
   } else {
-    N.wire.emit('session_load');
+    if (N.app.fontDestinationType() == 'file') {
+      N.wire.emit('file_load');
+    } else {
+      N.wire.emit('session_load');
+    }
   }
 
   //

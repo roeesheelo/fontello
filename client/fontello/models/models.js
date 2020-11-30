@@ -63,11 +63,19 @@ N.wire.once('navigate.done', { priority: -100 }, function () {
     this.svg      = data.svg;
 
     this.name.subscribe(function () {
-      N.wire.emit('session_save');
+      if (N.app.fontDestinationType() == 'file') {
+        N.wire.emit('file_save');
+      } else {
+        N.wire.emit('session_save');
+      }
     });
 
     this.code.subscribe(function () {
-      N.wire.emit('session_save');
+      if (N.app.fontDestinationType() == 'file') {
+        N.wire.emit('file_save');
+      } else {
+        N.wire.emit('session_save');
+      }
     });
 
 
@@ -259,7 +267,11 @@ N.wire.once('navigate.done', { priority: -100 }, function () {
 
     // save session on change
     this.collapsed.subscribe(function () {
-      N.wire.emit('session_save');
+      if (N.app.fontDestinationType() == 'file') {
+        N.wire.emit('file_save');
+      } else {
+        N.wire.emit('session_save');
+      }
     });
 
     this.makeSvgFont = function () {
@@ -349,7 +361,11 @@ N.wire.once('navigate.done', { priority: -100 }, function () {
       }
 
       // Force session save, because we keep custom icons sources in it.
-      N.wire.emit('session_save');
+      if (N.app.fontDestinationType() == 'file') {
+        N.wire.emit('file_save');
+      } else {
+        N.wire.emit('session_save');
+      }
 
       // Empty collection doesn't need font update
       if (!currentGlyphs.length) {
@@ -389,7 +405,11 @@ N.wire.once('navigate.done', { priority: -100 }, function () {
     this.selectedGlyphs = ko.observableArray();
 
     this.selectedGlyphs.subscribe(function () {
-      N.wire.emit('session_save');
+      if (N.app.fontDestinationType() == 'file') {
+        N.wire.emit('file_save');
+      } else {
+        N.wire.emit('session_save');
+      }
     });
 
     // Count of selected glyphs from all fonts

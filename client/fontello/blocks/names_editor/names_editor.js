@@ -84,7 +84,12 @@ N.wire.once('navigate.done', function () {
       // Insert before target glyph
       N.app.fontsList.selectedGlyphs.splice(insert_index, 0, drag_glyph);
 
-      N.wire.emit('session_save');
+      if (N.app.fontDestinationType() == 'file') {
+        N.wire.emit('file_save');
+      } else {
+        N.wire.emit('session_save');
+      }
+
       return false;
     })
     .on('dragend', function () {
