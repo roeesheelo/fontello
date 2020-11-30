@@ -25,6 +25,8 @@ en-US:
 
   fieldset_metrics: Metrics
   units_per_em: Units per em
+  font_destination_type: Destination Type
+  font_destination_path: Destination Path
   ascent: Ascent
   descent: Descent
   baseline: Baseline

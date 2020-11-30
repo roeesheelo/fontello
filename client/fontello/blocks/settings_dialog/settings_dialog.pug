@@ -87,7 +87,14 @@
               label.col-sm-3.control-label(for='st__copyright')= self.t('copyright')
               .col-sm-9
                 input#st__copyright.form-control(type='text', data-bind='value: copyright')
-
+            .form-group
+              label.col-sm-3.control-label(for='st__destination_type')= self.t('font_destination_type')
+              .col-sm-3
+                input#st__destination_type.form-control(type='text', data-bind='value: font_destination_type')
+            .form-group
+              label.col-sm-3.control-label(for='st__destination_path')= self.t('font_destination_path')
+              .col-sm-3
+                input#st__destination_path.form-control(type='text', data-bind='value: font_destination_path')
           .row.settings__buttons
             .col-sm-offset-3.col-sm-9
               button.btn.btn-primary.pull-right(
