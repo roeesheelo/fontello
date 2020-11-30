@@ -14,12 +14,18 @@ router:
       "/download/{id}":
         id: /[0-9a-f]{32}/
 
+    fontello.api.load:
+      "/load": ~
+
     fontello.robots:
       "/robots.txt": ~
 
   http.post:
     fontello.api.post:
       "/": ~
+
+    fontello.api.save:
+      "/save": ~
 
   bin:
     core.assets:
