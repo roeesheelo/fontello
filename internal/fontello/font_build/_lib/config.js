@@ -144,6 +144,8 @@ module.exports = function fontConfig(clientConfig) {
   //
   if (clientConfig.fullname === 'undefined') { delete clientConfig.fullname; }
   if (clientConfig.copyright === 'undefined') { delete clientConfig.copyright; }
+  if (clientConfig.font_destination_type === 'undefined') { delete clientConfig.font_destination_type; }
+  if (clientConfig.font_destination_path === 'undefined') { delete clientConfig.font_destination_path; }
 
   //
   // Fill default values, until replace `revalidator` with something better
@@ -172,7 +174,7 @@ module.exports = function fontConfig(clientConfig) {
   if (_.isEmpty(glyphsInfo)) return null;
 
   let defaultCopyright = 'Copyright (C) ' + new Date().getFullYear() + ' by original authors @ fontello.com';
-
+  let defaultFontDestinationType = 'session';
   return {
     font: {
       fontname,
@@ -182,6 +184,8 @@ module.exports = function fontConfig(clientConfig) {
       // https://github.com/fontello/fontello/issues/73?source=cc#issuecomment-7791793
       familyname: fontname,
       copyright: !_.isEmpty(fontsInfo) ? defaultCopyright : (clientConfig.copyright || defaultCopyright),
+      font_destination_type: !_.isEmpty(fontsInfo) ? defaultFontDestinationType : (clientConfig.font_destination_type || defaultFontDestinationType),
+      //font_destination_path: !_.isEmpty(fontsInfo) ? defaultFontDestinationPath : (clientConfig.font_destination_path || defaultFontDestinationPath),
       ascent:    clientConfig.ascent,
       descent:   clientConfig.ascent - clientConfig.units_per_em,
       weight:    400

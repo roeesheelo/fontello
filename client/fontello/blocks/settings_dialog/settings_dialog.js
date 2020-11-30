@@ -17,6 +17,8 @@ N.wire.once('navigate.done', function () {
     this.encoding   = ko.observable();
     this.fullname   = ko.observable();
     this.copyright  = ko.observable();
+    this.font_destination_type  = ko.observable();
+    this.font_destination_path  = ko.observable();
 
     // Lock to avoid circular updates
     var dependencies = true;
@@ -107,6 +109,8 @@ N.wire.once('navigate.done', function () {
     settings.encoding(N.app.encoding());
     settings.fullname(N.app.fontFullName());
     settings.copyright(N.app.fontCopyright());
+    settings.font_destination_type(N.app.fontDestinationType());
+    settings.font_destination_path(N.app.fontDestinationPath());
 
     ko.applyBindings(settings, $dialog.get(0));
 
@@ -136,6 +140,8 @@ N.wire.once('navigate.done', function () {
     N.app.encoding(settings.encoding());
     N.app.fontFullName(settings.fullname());
     N.app.fontCopyright(settings.copyright());
+    N.app.fontDestinationType(settings.font_destination_type());
+    N.app.fontDestinationPath(settings.font_destination_path());
     $dialog.modal('hide');
   });
 

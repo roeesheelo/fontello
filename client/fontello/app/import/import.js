@@ -51,6 +51,8 @@ function import_config(str, file) {
 
     N.app.fontName(config.name || '');
     N.app.cssPrefixText(String(config.css_prefix_text || 'icon-'));
+    N.app.fontDestinationType(config.font_destination_type || 'session');
+    N.app.fontDestinationPath(config.font_destination_path);
     N.app.cssUseSuffix(config.css_use_suffix === true);
     N.app.hinting(config.hinting !== false);  // compatibility with old configs
 

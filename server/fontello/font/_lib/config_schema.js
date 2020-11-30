@@ -17,6 +17,8 @@ module.exports = {
     ascent:           { type: 'integer',  required: false, default: 850,  minimum: 10 },
     fullname:         { type: 'string',   required: false },
     copyright:        { type: 'string',   required: false },
+    font_destination_type: { type: 'string',   required: false, default: 'session'},
+    font_destination_path: { type: 'string',   required: false},
     glyphs: {
       type: 'array',
       minItems: 1,

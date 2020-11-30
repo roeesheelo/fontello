@@ -9,6 +9,8 @@
   ],
   "ascent": 850,
   "units_per_em": 1000,
+  "font_destination_type": "session",
+  "font_destination_path": "",
   "hinting": false,
   "css_use_suffix": false,
   "css_prefix_text": "icon-",
