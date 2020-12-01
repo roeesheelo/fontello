@@ -1,7 +1,8 @@
 {
   "name": "icons",
   "css_prefix_text": "icon-",
-  "font_destination": {"type": "file", "path": "./t60.json"},
+  "font_destination_type": "file",
+  "font_destination_path": "./t60.css",
   "css_use_suffix": false,
   "hinting": true,
   "units_per_em": 1000,

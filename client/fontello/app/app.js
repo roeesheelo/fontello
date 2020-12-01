@@ -49,7 +49,7 @@ N.wire.once('navigate.done', { priority: -90 }, function () {
   N.app.fontName      = ko.observable();
   N.app.cssPrefixText = ko.observable();
   N.app.cssUseSuffix  = ko.observable();
-  N.app.fontDestinationType  = ko.observable();
+  N.app.fontDestinationType  = ko.observable('file');
   N.app.fontDestinationPath  = ko.observable();
 
   // This font params needed only if one wish to create custom font,
@@ -138,7 +138,9 @@ N.wire.once('navigate.done', { priority: -10 }, function page_setup() {
     'fontUnitsPerEm',
     'fontAscent',
     'fontFullName',
-    'fontCopyright'
+    'fontCopyright',
+    'fontDestinationType',
+    'fontDestinationPath',
   ].forEach(function (key) {
     N.app[key].subscribe(function () {
       if (N.app.fontDestinationType() == 'file') {

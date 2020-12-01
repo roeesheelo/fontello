@@ -13,10 +13,4 @@ db/
 .fontello
 .fontello.zip
 .fontello.src
-/.idea/dictionaries/roeesheelo.xml
-/.idea/fontello.iml
-/.idea/jsLibraryMappings.xml
-/.idea/misc.xml
-/.idea/modules.xml
-/.idea/vcs.xml
-/.idea/workspace.xml
+/.idea
